@@ -37,7 +37,6 @@ Program dilengkapi antarmuka pengguna agar kode mudah dimasukkan dan hasilnya mu
 | Berkas | Keterangan |
 |---|---|
 | `tokenizer_pascal.html` | Versi web (dijalankan langsung di browser) |
-| `tokenizer_pascal.py` | Versi desktop (Python dengan GUI Tkinter) |
 | `test-pascal/` | Kumpulan berkas uji `.pas` dan kunci hasil |
 | `README.md` | Dokumen ini |
 ​
@@ -48,13 +47,7 @@ Program dilengkapi antarmuka pengguna agar kode mudah dimasukkan dan hasilnya mu
 2. Berkas akan terbuka di browser (Chrome, Edge, atau Firefox).
 3. Tidak memerlukan instalasi dan dapat berjalan secara offline.
 ​
-### 4.2 Versi Python
-```bash
-python tokenizer_pascal.py            # membuka aplikasi GUI
-python tokenizer_pascal.py --test     # uji cepat melalui terminal (tanpa GUI)
-```
-Apabila pada Linux muncul pesan `No module named tkinter`, jalankan `sudo apt install python3-tk`. Pada Windows dan macOS, Tkinter sudah tersedia secara bawaan.
-​
+
 ## 5. Cara Penggunaan
 ​
 1. Masukkan kode Pascal pada kotak editor di sisi kiri, atau gunakan tombol Buka File untuk memuat berkas `.pas`.
