@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tokenizer Pascal — Tugas Praktikum #1 </title>
+<style>
+:root{
+  --notion-bg:#ffffff;--notion-bg-soft:#f9f9f8;--notion-surface:#ffffff;--notion-surface-hover:#f6f5f4;
+  --notion-text:#191918;--notion-text-soft:rgba(0,0,0,.54);--notion-text-faint:rgba(0,0,0,.3);
+  --notion-border:rgba(0,0,0,.1);--notion-border-soft:rgba(0,0,0,.05);
+  --notion-shadow:0px .7px 1.462px rgba(0,0,0,.015),0px 3px 9px rgba(0,0,0,.03);
+  --notion-blue:#2783de;--notion-orange:#d5803b;--notion-red:#e56458;
+  --notion-blue-bg:#f3f9fd;--notion-yellow-bg:#fcfaef;--notion-orange-bg:#fcf7f4;--notion-green-bg:#f6f9f7;
+  --notion-red-bg:#fdf6f6;--notion-gray-bg:#f9f8f7;--notion-radius:8px;
+  --c-reserved:#2783de;--c-symbol:#d5803b;--c-var:#2a9d76;--c-math:#8a63d2;--c-num:#c2410c;--c-str:#0e7490;
+}
+@media (prefers-color-scheme: dark){:root{
+  --notion-bg:#0d0d0d;--notion-bg-soft:#191918;--notion-surface:#191918;--notion-surface-hover:#31302e;
+  --notion-text:#fff;--notion-text-soft:rgba(255,255,255,.5);--notion-text-faint:rgba(255,255,255,.3);
+  --notion-border:rgba(255,255,255,.2);--notion-border-soft:rgba(255,255,255,.1);
+  --notion-blue:#5e9fe8;--notion-orange:#de9255;--notion-red:#e97366;
+  --notion-blue-bg:rgba(41,139,253,.09);--notion-yellow-bg:rgba(203,145,47,.1);--notion-orange-bg:rgba(246,126,35,.1);
+  --notion-green-bg:rgba(42,157,118,.1);--notion-red-bg:rgba(246,73,50,.1);--notion-gray-bg:#222;
+  --c-reserved:#5e9fe8;--c-symbol:#de9255;--c-var:#3ecf8e;--c-math:#b18cf0;--c-num:#fb923c;--c-str:#22d3ee;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--notion-bg);color:var(--notion-text);
+  font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  font-size:16px;line-height:1.5}
+h1,h2,h3{text-wrap:balance}
+h1{margin:0 0 6px;font-size:28px;letter-spacing:-.02em;font-weight:750}
+h2{margin:0 0 12px;font-size:18px;letter-spacing:-.01em}
+p{margin:0 0 10px}
+button{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 16px;font:inherit;
+  font-size:14px;font-weight:600;color:#fff;background:var(--notion-blue);border:1px solid transparent;
+  border-radius:8px;cursor:pointer;transition:background .15s,transform .05s;white-space:nowrap}
+button:hover{background:color-mix(in srgb,var(--notion-blue) 82%,black)}
+button:active{transform:translateY(1px)}
+button.sec{background:var(--notion-surface);color:var(--notion-text);border:1px solid var(--notion-border)}
+button.sec:hover{background:var(--notion-surface-hover)}
+textarea{font:inherit;color:var(--notion-text);background:var(--notion-surface);border:1px solid var(--notion-border);
+  border-radius:8px;padding:10px 12px}
+textarea:focus{outline:none;border-color:var(--notion-blue);box-shadow:0 0 0 2px rgba(9,127,232,.15)}
+
+/* callout */
+.notion-callout{display:grid;grid-template-columns:auto 1fr;gap:14px;margin:0 0 18px;padding:14px 16px;
+  border-radius:var(--notion-radius);background:var(--notion-blue-bg);box-shadow:inset 0 0 0 1px var(--notion-border-soft)}
+.notion-callout strong{display:block;margin-bottom:3px}
+.notion-callout p{margin:0;color:var(--notion-text-soft);font-size:14px}
+
+/* shell */
+.shell{max-width:1240px;margin:0 auto;padding:28px 22px 60px}
+.topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--notion-blue)}
+.sub{color:var(--notion-text-soft);font-size:14px;margin:0}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;margin-top:18px}
+@media(max-width:920px){.layout{grid-template-columns:1fr}}
+
+.panel{background:var(--notion-surface);border:1px solid var(--notion-border-soft);border-radius:12px;
+  box-shadow:var(--notion-shadow);padding:16px;display:flex;flex-direction:column;min-height:0}
+.panel h2{display:flex;align-items:center;gap:8px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+#code{width:100%;min-height:420px;resize:vertical;
+  font-family:ui-monospace,"SF Mono",Menlo,Consolas,"Courier New",monospace;font-size:13px;line-height:1.55;
+  tab-size:2}
+.hint{font-size:12px;color:var(--notion-text-faint);margin:8px 0 0}
+
+/* stat grid */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+@media(max-width:1080px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{padding:12px 14px;border:1px solid var(--notion-border-soft);border-radius:10px;background:var(--notion-bg-soft)}
+.stat .lab{margin:0 0 4px;font-size:12px;font-weight:600;color:var(--notion-text-soft)}
+.stat .val{margin:0;font-size:26px;font-weight:750;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+
+/* tabs */
+.tabbar{display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--notion-border-soft);margin-bottom:12px}
+.tab{padding:8px 12px;font-size:13px;font-weight:600;color:var(--notion-text-soft);background:none;border:none;
+  border-bottom:2px solid transparent;border-radius:0;cursor:pointer}
+.tab:hover{color:var(--notion-text);background:none}
+.tab.active{color:var(--notion-blue);border-bottom-color:var(--notion-blue)}
+.tab .cnt{display:inline-block;min-width:18px;padding:0 5px;margin-left:5px;font-size:11px;line-height:16px;
+  border-radius:999px;background:var(--notion-gray-bg);color:var(--notion-text-soft)}
+.tabview{display:none}
+.tabview.active{display:block}
+
+/* result table */
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;
+  border:1px solid var(--notion-border-soft);border-radius:10px;overflow:hidden}
+th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--notion-border-soft);vertical-align:top}
+th{background:var(--notion-bg-soft);color:var(--notion-text-soft);font-weight:600;position:sticky;top:0}
+tr:last-child td{border-bottom:0}
+tbody tr:nth-child(even){background:var(--notion-bg-soft)}
+.tablewrap{max-height:430px;overflow:auto;border-radius:10px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+.chip{display:inline-block;padding:1px 7px;border-radius:6px;font-size:12px;font-weight:600;
+  font-family:ui-monospace,Menlo,Consolas,monospace}
+.chip.reserved{background:var(--notion-blue-bg);color:var(--c-reserved)}
+.chip.symbol{background:var(--notion-orange-bg);color:var(--c-symbol)}
+.chip.variable{background:var(--notion-green-bg);color:var(--c-var)}
+.chip.math{background:var(--notion-yellow-bg);color:var(--c-math)}
+.chip.number{background:var(--notion-orange-bg);color:var(--c-num)}
+.chip.string{background:var(--notion-gray-bg);color:var(--c-str)}
+.empty{padding:26px;text-align:center;color:var(--notion-text-faint);font-size:14px}
+.lines{color:var(--notion-text-faint);font-size:12px}
+.kindtag{font-size:11px;font-weight:600;padding:1px 6px;border-radius:5px;background:var(--notion-gray-bg);color:var(--notion-text-soft)}
+.footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--notion-border-soft);
+  color:var(--notion-text-faint);font-size:12px}
+</style>
+</head>
+<body>
+<main class="shell">
+  <div class="topbar">
+    <div>
+      <span class="eyebrow">Tugas Praktikum #1 · Otomata</span>
+      <h1>🔍 Tokenizer / Lexical Analyzer Pascal</h1>
+      <p class="sub">Membaca source code lalu memecahnya jadi token &amp; mengelompokkan sesuai sifatnya </p>
+    </div>
+  </div>
+
+  <div class="notion-callout">
+    <div>💡</div>
+    <div>
+      <strong>Cara pakai</strong>
+      <p>Tempel/ketik kode Pascal di kiri lalu klik <b>Analisis Token</b> (atau tekan <b>Ctrl/Cmd + Enter</b>). Hasil dikelompokkan ke: reserved words, simbol &amp; tanda baca, variabel, dan kalimat matematika — sesuai empat kategori pada soal.</p>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- KIRI: input -->
+    <section class="panel">
+      <h2>📝 Source code (Pascal)</h2>
+      <div class="toolbar">
+        <button onclick="analyze()">▶ Analisis Token</button>
+        <button class="sec" onclick="loadSample()">Contoh</button>
+        <label class="sec" style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;font-size:14px;font-weight:600;border:1px solid var(--notion-border);border-radius:8px;cursor:pointer;background:var(--notion-surface)">
+          Buka File
+          <input type="file" id="file" accept=".pas,.pp,.inc,.txt" style="display:none" onchange="openFile(event)">
+        </label>
+        <button class="sec" onclick="clearCode()">Bersihkan</button>
+        <button class="sec" onclick="saveResult()">⬇ Simpan Hasil</button>
+      </div>
+      <textarea id="code" spellcheck="false" placeholder="Tempel kode Pascal di sini..."></textarea>
+      <p class="hint">Mendukung komentar { } (* *) //, string literal, bilangan real/hex, dan Pascal bersifat case-insensitive.</p>
+    </section>
+
+    <!-- KANAN: hasil -->
+    <section class="panel">
+      <h2>📊 Hasil Tokenisasi</h2>
+      <div class="stats" id="stats"></div>
+      <div class="tabbar" id="tabbar"></div>
+      <div id="views"></div>
+    </section>
+  </div>
+
+  <p class="footer">Dibuat untuk Tugas Praktikum #1 — Pengenalan Grammar (Pertemuan II). Scanner: regex lexical rules → klasifikasi token → deteksi ekspresi matematika. Berjalan sepenuhnya di browser (offline).</p>
+</main>
+
+<script>
+"use strict";
+
+/* ============================================================
+   1. DEFINISI BAHASA — himpunan terminal baku (reserved words)
+   ============================================================ */
+const RESERVED = new Set([
+  "program","unit","uses","interface","implementation","initialization","finalization","library",
+  "begin","end","var","const","type","label","procedure","function","forward","external",
+  "if","then","else","case","of","for","to","downto","do","while","repeat","until","goto","with",
+  "break","continue","exit","and","or","not","xor","div","mod","shl","shr","in",
+  "integer","real","boolean","char","string","byte","word","longint","shortint","double","single",
+  "extended","cardinal","text","array","record","set","file","packed","object","class","nil",
+  "true","false","write","writeln","read","readln","assign","reset","rewrite","close"
+]);
+const MATH_FUNCS = ["abs","sqr","sqrt","sin","cos","tan","arctan","ln","exp","round","trunc","frac","int","pi","power","pred","succ","ord","chr"];
+
+const SYMBOL_NAME = {
+  ":=":"assignment","+":"operator tambah","-":"operator kurang","*":"operator kali","/":"operator bagi",
+  "=":"sama dengan","<":"lebih kecil",">":"lebih besar","<=":"lebih kecil sama",">=":"lebih besar sama",
+  "<>":"tidak sama","..":"range",";":"pemisah statement",":":"titik dua",",":"koma",".":"titik",
+  "(":"kurung buka",")":"kurung tutup","[":"siku buka","]":"siku tutup","^":"pointer","@":"address"
+};
+
+/* ============================================================
+   2. SCANNER — regex lexical rules (mirip production grammar)
+   ============================================================ */
+const SPEC = [
+  ["COMMENT", /\{[^}]*\}|\(\*[\s\S]*?\*\)|\/\/[^\n]*/y],
+  ["NEWLINE", /\n/y],
+  ["SKIP",    /[ \t\r]+/y],
+  ["STRING",  /'(?:[^']|'')*'/y],
+  ["REAL",    /\d+\.\d+(?:[eE][+-]?\d+)?/y],
+  ["INT",     /\$[0-9A-Fa-f]+|\d+/y],
+  ["ID",      /[A-Za-z_][A-Za-z0-9_]*/y],
+  ["OP",      /:=|<=|>=|<>|\.\.|[+\-*/=<>@^]/y],
+  ["PUNCT",   /[;:,.()\[\]]/y],
+  ["MISMATCH",/./y]
+];
+
+function scan(src){
+  const tokens=[], errors=[];
+  let line=1, lineStart=0, pos=0;
+  while(pos<src.length){
+    let matched=false;
+    for(const [kind,re] of SPEC){
+      re.lastIndex=pos;
+      const m=re.exec(src);
+      if(m && m.index===pos){
+        const value=m[0];
+        const col=pos-lineStart+1;
+        if(kind==="NEWLINE"){line++;lineStart=pos+value.length;}
+        else if(kind==="SKIP"){/* abaikan */}
+        else if(kind==="COMMENT"){const nl=(value.match(/\n/g)||[]).length; line+=nl; if(nl){lineStart=pos+value.lastIndexOf("\n")+1;}}
+        else if(kind==="MISMATCH"){errors.push({value,line,col});}
+        else{tokens.push({kind,value,line,col});}
+        pos+=value.length;
+        matched=true;
+        break;
+      }
+    }
+    if(!matched){pos++;}
+  }
+  return {tokens,errors};
+}
+
+/* ============================================================
+   3. KLASIFIKASI token ke kategori sesuai sifatnya
+   ============================================================ */
+function classify(tokens){
+  const g={reserved:[],symbol:[],variable:[],number:[],string:[],function:[]};
+  for(let i=0;i<tokens.length;i++){
+    const t=tokens[i];
+    if(t.kind==="ID"){
+      const low=t.value.toLowerCase();
+      if(RESERVED.has(low)) g.reserved.push(t);
+      else{
+        const nxt=tokens[i+1];
+        if(nxt && nxt.value==="("){g.function.push(t);g.variable.push(t);}
+        else g.variable.push(t);
+      }
+    } else if(t.kind==="OP"||t.kind==="PUNCT") g.symbol.push(t);
+    else if(t.kind==="INT"||t.kind==="REAL") g.number.push(t);
+    else if(t.kind==="STRING") g.string.push(t);
+  }
+  return g;
+}
+
+/* ============================================================
+   4. DETEKSI kalimat matematika (persamaan, kondisi, fungsi)
+   ============================================================ */
+function stripCS(code){
+  code=code.replace(/\{[^}]*\}|\(\*[\s\S]*?\*\)|\/\/[^\n]*/g," ");
+  code=code.replace(/'(?:[^']|'')*'/g," '' ");
+  return code;
+}
+const norm=s=>s.replace(/\s+/g," ").trim();
+
+function extractMath(code){
+  const clean=stripCS(code), out=[], seen=new Set();
+  const add=(kind,text)=>{text=norm(text);const k=kind+"|"+text.toLowerCase();if(text&&!seen.has(k)){seen.add(k);out.push({kind,text});}};
+  const mathOp=/[+\-*/=<>]|\bdiv\b|\bmod\b|\bshl\b|\bshr\b/i;
+
+  // 4a. Persamaan / assignment (RHS berhenti di ; akhir baris atau kata kunci alur)
+  const asg=/[A-Za-z_]\w*(?:\s*\[[^\]]*\])?\s*:=\s*.+?(?=;|\bto\b|\bdownto\b|\bdo\b|\bthen\b|\belse\b|\buntil\b|$)/gim;
+  let m; while((m=asg.exec(clean))) add("Persamaan (assignment)",m[0]);
+
+  // 4b. Kondisi if / while
+  const cond=/\b(if|while)\b([\s\S]+?)\b(then|do)\b/gi;
+  while((m=cond.exec(clean))){ if(mathOp.test(m[2])) add("Kondisi / ekspresi",m[2]); }
+
+  // 4c. Kondisi repeat..until
+  const until=/\buntil\b([\s\S]+?)(?=;|$)/gi;
+  while((m=until.exec(clean))){ if(mathOp.test(m[1])) add("Kondisi / ekspresi",m[1]); }
+
+  // 4d. Pemanggilan fungsi matematika bawaan
+  const fnames=MATH_FUNCS.slice().sort((a,b)=>b.length-a.length).join("|");
+  const fn=new RegExp("\\b(?:"+fnames+")\\s*\\([^;]*?\\)","gi");
+  while((m=fn.exec(clean))) add("Fungsi matematika",m[0]);
+
+  return out;
+}
+
+/* ============================================================
+   5. RINGKASAN unik (jumlah + baris)
+   ============================================================ */
+function summarize(tokens){
+  const map=new Map();
+  for(const t of tokens){
+    if(!map.has(t.value)) map.set(t.value,{count:0,lines:[]});
+    const e=map.get(t.value); e.count++; if(!e.lines.includes(t.line)) e.lines.push(t.line);
+  }
+  return map;
+}
+const linesStr=a=>a.slice(0,14).join(", ")+(a.length>14?" …":"");
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ============================================================
+   6. RENDER UI
+   ============================================================ */
+let LAST=null;
+const TABS=[
+  {id:"summary",label:"Ringkasan"},
+  {id:"reserved",label:"Reserved Words"},
+  {id:"symbol",label:"Simbol & Tanda Baca"},
+  {id:"variable",label:"Variabel"},
+  {id:"math",label:"Kalimat Matematika"},
+  {id:"all",label:"Semua Token"}
+];
+let activeTab="summary";
+
+function analyze(){
+  const src=document.getElementById("code").value;
+  const {tokens,errors}=scan(src);
+  const g=classify(tokens);
+  const math=extractMath(src);
+  LAST={tokens,errors,g,math};
+
+  const sRes=summarize(g.reserved), sSym=summarize(g.symbol), sVar=summarize(g.variable);
+  const counts={reserved:sRes.size,symbol:sSym.size,variable:sVar.size,math:math.length,all:tokens.length};
+
+  // stats
+  document.getElementById("stats").innerHTML=[
+    ["Total token",tokens.length],["Reserved words",sRes.size],
+    ["Variabel",sVar.size],["Kalimat mtk",math.length]
+  ].map(([l,v])=>`<div class="stat"><p class="lab">${l}</p><p class="val">${v}</p></div>`).join("");
+
+  // tabs
+  document.getElementById("tabbar").innerHTML=TABS.map(t=>{
+    const c=counts[t.id]!==undefined?`<span class="cnt">${counts[t.id]}</span>`:"";
+    return `<button class="tab ${t.id===activeTab?"active":""}" data-tab="${t.id}" onclick="switchTab('${t.id}')">${t.label}${c}</button>`;
+  }).join("");
+
+  // views
+  const V={};
+  V.summary=renderSummary(g,math,errors,tokens,sRes,sSym,sVar);
+  V.reserved=renderMap(sRes,"reserved",["Kata Kunci","Jumlah","Baris"]);
+  V.symbol=renderSymbol(sSym);
+  V.variable=renderMap(sVar,"variable",["Identifier","Jumlah","Baris"]);
+  V.math=renderMath(math);
+  V.all=renderAll(tokens);
+  document.getElementById("views").innerHTML=TABS.map(t=>
+    `<div class="tabview ${t.id===activeTab?"active":""}" id="view-${t.id}">${V[t.id]}</div>`).join("");
+}
+
+function switchTab(id){
+  activeTab=id;
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===id));
+  document.querySelectorAll(".tabview").forEach(v=>v.classList.toggle("active",v.id==="view-"+id));
+}
+
+function renderMap(map,chipCls,heads){
+  if(map.size===0) return emptyMsg();
+  let rows="";let i=0;
+  for(const [k,v] of map){ i++;
+    rows+=`<tr><td>${i}</td><td><span class="chip ${chipCls}">${esc(k)}</span></td><td>${v.count}</td><td class="lines">${linesStr(v.lines)}</td></tr>`;
+  }
+  return `<div class="tablewrap"><table><thead><tr><th>No</th><th>${heads[0]}</th><th>${heads[1]}</th><th>${heads[2]}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function renderSymbol(map){
+  if(map.size===0) return emptyMsg();
+  let rows="";let i=0;
+  for(const [k,v] of map){ i++;
+    rows+=`<tr><td>${i}</td><td><span class="chip symbol">${esc(k)}</span></td><td>${SYMBOL_NAME[k]||"-"}</td><td>${v.count}</td><td class="lines">${linesStr(v.lines)}</td></tr>`;
+  }
+  return `<div class="tablewrap"><table><thead><tr><th>No</th><th>Simbol</th><th>Jenis</th><th>Jumlah</th><th>Baris</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function renderMath(math){
+  if(math.length===0) return emptyMsg("Tidak ada kalimat matematika terdeteksi.");
+  const rows=math.map((m,i)=>`<tr><td>${i+1}</td><td><span class="kindtag">${esc(m.kind)}</span></td><td class="mono">${esc(m.text)}</td></tr>`).join("");
+  return `<div class="tablewrap"><table><thead><tr><th>No</th><th>Jenis</th><th>Ekspresi</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function renderAll(tokens){
+  if(tokens.length===0) return emptyMsg();
+  const KIND={ID:"identifier",OP:"operator",PUNCT:"tanda baca",INT:"angka bulat",REAL:"angka real",STRING:"string"};
+  const rows=tokens.map((t,i)=>{
+    let lbl=KIND[t.kind]||t.kind, cls="variable";
+    if(t.kind==="ID"&&RESERVED.has(t.value.toLowerCase())){lbl="reserved word";cls="reserved";}
+    else if(t.kind==="ID")cls="variable";
+    else if(t.kind==="OP"||t.kind==="PUNCT")cls="symbol";
+    else if(t.kind==="INT"||t.kind==="REAL")cls="number";
+    else if(t.kind==="STRING")cls="string";
+    return `<tr><td>${i+1}</td><td><span class="chip ${cls}">${esc(t.value)}</span></td><td>${lbl}</td><td>${t.line}</td><td>${t.col}</td></tr>`;
+  }).join("");
+  return `<div class="tablewrap"><table><thead><tr><th>No</th><th>Lexeme</th><th>Kategori</th><th>Baris</th><th>Kolom</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function renderSummary(g,math,errors,tokens,sRes,sSym,sVar){
+  let h="";
+  h+=`<p><b>Daftar variabel:</b> ${[...sVar.keys()].map(v=>`<span class="chip variable">${esc(v)}</span>`).join(" ")||"<span class='lines'>—</span>"}</p>`;
+  h+=`<p style="margin-top:12px"><b>Reserved words:</b> ${[...sRes.keys()].map(v=>`<span class="chip reserved">${esc(v)}</span>`).join(" ")||"<span class='lines'>—</span>"}</p>`;
+  h+=`<p style="margin-top:12px"><b>Simbol & tanda baca:</b> ${[...sSym.keys()].map(v=>`<span class="chip symbol">${esc(v)}</span>`).join(" ")||"<span class='lines'>—</span>"}</p>`;
+  h+=`<p style="margin-top:12px"><b>Literal:</b> ${g.number.length} angka, ${g.string.length} string</p>`;
+  if(errors.length){
+    h+=`<div class="notion-callout" data-tone="red" style="background:var(--notion-red-bg);margin-top:14px"><div>⚠️</div><div><strong>Karakter tak dikenal (${errors.length})</strong><p>`+
+      errors.map(e=>`"${esc(e.value)}" (baris ${e.line}, kolom ${e.col})`).join("; ")+`</p></div></div>`;
+  }
+  return h;
+}
+function emptyMsg(msg){return `<div class="empty">${msg||"Tidak ada token pada kategori ini."}</div>`;}
+
+/* ============================================================
+   7. Aksi tombol
+   ============================================================ */
+function openFile(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{document.getElementById("code").value=ev.target.result;analyze();};
+  r.readAsText(f); e.target.value="";
+}
+function clearCode(){document.getElementById("code").value="";}
+function saveResult(){
+  if(!LAST){alert("Jalankan Analisis Token dulu.");return;}
+  const g=LAST.g;let t="HASIL TOKENISASI - Tokenizer Pascal\n"+"=".repeat(50)+"\n\n";
+  const dump=(title,map)=>{t+=`[${title}]\n`;for(const [k,v] of map)t+=`  ${k.padEnd(20)} x${v.count}  baris: ${v.lines.join(", ")}\n`;t+="\n";};
+  dump("RESERVED WORDS",summarize(g.reserved));
+  dump("SIMBOL & TANDA BACA",summarize(g.symbol));
+  dump("VARIABEL",summarize(g.variable));
+  t+="[KALIMAT MATEMATIKA]\n";LAST.math.forEach(m=>t+=`  (${m.kind}) ${m.text}\n`);
+  const blob=new Blob([t],{type:"text/plain"});const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download="hasil-tokenisasi.txt";a.click();URL.revokeObjectURL(a.href);
+}
+
+const SAMPLE=`program HitungLuas;
+{ Program contoh: menghitung luas & keliling lingkaran }
+uses crt;
+
+var
+  jari    : real;
+  luas    : real;
+  keliling: real;
+  i       : integer;
+
+function Kuadrat(x: real): real;
+begin
+  Kuadrat := x * x;
+end;
+
+begin
+  write('Masukkan jari-jari: ');
+  readln(jari);
+
+  luas     := 3.14159 * Kuadrat(jari);
+  keliling := 2 * 3.14159 * jari;
+
+  if luas > 100 then
+    writeln('Lingkaran besar')
+  else
+    writeln('Lingkaran kecil');
+
+  for i := 1 to 5 do
+    writeln('Iterasi ke-', i, ' nilai = ', i * i);
+
+  writeln('Luas     = ', luas:0:2);
+  writeln('Keliling = ', keliling:0:2);
+  readln;
+end.`;
+function loadSample(){document.getElementById("code").value=SAMPLE;analyze();}
+
+// shortcut & init
+document.getElementById("code").addEventListener("keydown",e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();analyze();}
+});
+loadSample();
+</script>
+</body>
+</html>
